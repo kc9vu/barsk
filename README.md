@@ -14,7 +14,7 @@ A bark cli written by Rust.
 ```
 A bark cli written by Rust
 
-Usage: cli.exe [OPTIONS] <BODY>
+Usage: barsk.exe [OPTIONS] <BODY>
 
 Arguments:
   <BODY>  Push content
