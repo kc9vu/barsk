@@ -1,4 +1,5 @@
 # barsk
+
 A bark cli written by Rust.
 
 > Bark is a free, lightweight, push app for your iPhone with a simple interface call. [Official website](https://bark.day.app/#/)
@@ -12,7 +13,7 @@ A bark cli written by Rust.
 
 ## Help
 
-```
+```plain
 A bark cli written by Rust
 
 Usage: barsk.exe [OPTIONS] <BODY>
@@ -22,9 +23,9 @@ Arguments:
 
 Options:
   -t, --title <TITLE>            Push title
-  -C, --auto_copy                Automatically copy push content
+  -C, --auto-copy                Automatically copy push content
   -c, --copy <COPY>              Copy the content at push, otherwise copy BODY
-  -A, --archive <IS_ARCHIVE>     Pass 1 to save the push, pass the others to not save the push
+  -a, --archive                  Archive the push, can be disabled with --no-archive
   -L, --level <LEVEL>            Push interrupt level [possible values: active, timeSensitive, passive]
   -U, --url <URL>                URL on click
   -G, --group <GROUP>            Group the messages
@@ -49,7 +50,7 @@ Options:
 {
     "server": "https://api.day.app",
     "device_key": "...",
-    "is_archive": "1",
+    "archive": false,
     "level": "active",
     "group": "From Windows",
     "icon": "https://www.example.com/favicon.ico",

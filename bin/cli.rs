@@ -15,8 +15,7 @@ pub mod utils {
 
     pub mod catch_all {
         pub fn with_default_protocol(address: &String) -> String {
-            // maybe add condition address.contains("://") is better
-            if !address[..10].contains("://") {
+            if !address.contains("://") {
                 format!("https://{address}")
             } else {
                 address.to_owned()
@@ -28,10 +27,10 @@ pub mod utils {
 mod app {
     use std::fs::File;
 
-    use clap::Parser;
-    use serde::{Deserialize, Serialize};
+    use clap::{Parser, ArgAction};
+    use serde::{Deserialize, Serialize, Serializer};
 
-    use super::utils::{secret::encrypt_message, catch_all::with_default_protocol};
+    use super::utils::{catch_all::with_default_protocol, secret::encrypt_message};
 
     #[derive(Parser, Serialize, Clone)]
     #[command(name = "barsk", author, version, about, long_about = None)]
@@ -43,17 +42,30 @@ mod app {
         #[serde(skip_serializing_if = "Option::is_none")]
         pub title: Option<String>,
 
-        #[arg(short = 'C', long = "auto_copy", help = "Automatically copy push content")]
+        #[arg(
+            short = 'C',
+            long,
+            help = "Automatically copy push content"
+        )]
         #[serde(rename = "autoCopy")]
+        #[serde(skip_serializing_if = "is_false")]
         pub auto_copy: bool,
 
         #[arg(short, long, help = "Copy the content at push, otherwise copy BODY")]
         #[serde(skip_serializing_if = "Option::is_none")]
         pub copy: Option<String>,
 
-        #[arg(short = 'A', long = "archive", help = "Pass 1 to save the push, pass the others to not save the push")]
-        #[serde(rename = "isArchive", skip_serializing_if = "Option::is_none")]
-        pub is_archive: Option<String>,
+        #[arg(
+            short,
+            long,
+            help = "Archive the push, can be disabled with --no-archive"
+        )]
+        #[serde(rename = "isArchive", skip_serializing_if = "is_false", serialize_with = "serialize_archive")]
+        archive: bool,
+
+        #[arg(long, overrides_with = "archive", hide = true, action = ArgAction::SetTrue)]
+        #[serde(rename = "isArchive", skip_serializing_if = "is_false", serialize_with = "serialize_no_archive")]
+        no_archive: bool,
 
         #[arg(
             short = 'L',
@@ -99,7 +111,11 @@ mod app {
         #[serde(skip_serializing)]
         iv: Option<String>,
 
-        #[arg(short = 'F', long = "config", help = "Simplifying options with configuration files")]
+        #[arg(
+            short = 'F',
+            long = "config",
+            help = "Simplifying options with configuration files"
+        )]
         #[serde(skip_serializing)]
         config_file: Option<String>,
 
@@ -118,6 +134,23 @@ mod app {
         #[arg(short = 'd', long)]
         #[serde(skip_serializing)]
         pub device_key: Option<String>,
+    }
+
+    fn is_false(value: &bool) -> bool {
+        !value
+    }
+
+    fn serialize_archive<S>(_value: &bool, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_str("1")
+    }
+    fn serialize_no_archive<S>(_value: &bool, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_str("0")
     }
 
     impl Bark {
@@ -149,13 +182,6 @@ mod app {
             }
         }
 
-        // pub fn read_config(&self) -> Option<Conf> {
-        //     match self.config_file.as_ref() {
-        //         Some(config_file) => {Some(Conf::from_file_yes(&config_file))},
-        //         None => None,
-        //     }
-        // }
-
         /// Update missing options from config.
         pub fn update_with_config(&mut self, config: &Conf) {
             macro_rules! update_field {
@@ -167,7 +193,6 @@ mod app {
             }
             update_field!(server);
             update_field!(device_key);
-            update_field!(is_archive);
             update_field!(level);
             update_field!(group);
             update_field!(icon);
@@ -176,6 +201,9 @@ mod app {
 
             if !self.thats_all && self.server.is_none() {
                 self.server = Some(String::from("https://api.day.app"));
+            }
+            if !self.archive && !self.no_archive {
+                self.archive = config.archive.unwrap_or(false);
             }
             if self.key.is_some() ^ self.iv.is_some() {
                 panic!("When using encryption, key and iv must be provided at the same time")
@@ -228,18 +256,20 @@ mod app {
 
         fn print(&self) {
             println!(
-                "The message will be sent to {}/xxxxx",
-                with_default_protocol(self.server.as_ref().unwrap()),
+                "The message will be sent to {}/{}",
+                // with_default_protocol(&self.server.clone().unwrap_or("".to_string())),
                 // self.device_key.as_ref().unwrap(),
+                if self.server.as_ref().is_some() { with_default_protocol(&self.server.clone().unwrap()) } else { "no_server".to_string() },
+                if self.device_key.as_ref().is_some() { "xxxxx" } else { "no_device_key" },
             );
             println!("{}", self.dumps());
         }
 
         pub fn execute(&self) {
-            self.check();
             if self.dry_run {
                 self.print();
             } else {
+                self.check();
                 self.send();
             }
         }
@@ -249,7 +279,7 @@ mod app {
     pub struct Conf {
         server: Option<String>,
         device_key: Option<String>,
-        is_archive: Option<String>,
+        archive: Option<bool>,
         level: Option<String>,
         group: Option<String>,
         icon: Option<String>,
