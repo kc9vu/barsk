@@ -27,7 +27,7 @@ pub mod utils {
 mod app {
     use std::fs::File;
 
-    use clap::{Parser, ArgAction};
+    use clap::{ArgAction, Parser};
     use serde::{Deserialize, Serialize, Serializer};
 
     use super::utils::{catch_all::with_default_protocol, secret::encrypt_message};
@@ -42,11 +42,7 @@ mod app {
         #[serde(skip_serializing_if = "Option::is_none")]
         pub title: Option<String>,
 
-        #[arg(
-            short = 'C',
-            long,
-            help = "Automatically copy push content"
-        )]
+        #[arg(short = 'C', long, help = "Automatically copy push content")]
         #[serde(rename = "autoCopy")]
         #[serde(skip_serializing_if = "is_false")]
         pub auto_copy: bool,
@@ -58,13 +54,21 @@ mod app {
         #[arg(
             short,
             long,
-            help = "Archive the push, can be disabled with --no-archive"
+            help = "Archive the push. Flag can be overridden with --no-archive"
         )]
-        #[serde(rename = "isArchive", skip_serializing_if = "is_false", serialize_with = "serialize_archive")]
+        #[serde(
+            rename = "isArchive",
+            skip_serializing_if = "is_false",
+            serialize_with = "serialize_archive"
+        )]
         archive: bool,
 
         #[arg(long, overrides_with = "archive", hide = true, action = ArgAction::SetTrue)]
-        #[serde(rename = "isArchive", skip_serializing_if = "is_false", serialize_with = "serialize_no_archive")]
+        #[serde(
+            rename = "isArchive",
+            skip_serializing_if = "is_false",
+            serialize_with = "serialize_no_archive"
+        )]
         no_archive: bool,
 
         #[arg(
@@ -98,10 +102,14 @@ mod app {
         #[arg(
             short = 'E',
             long,
-            help = "Encrypt message using AES. Now only support aes_256_cbc"
+            help = "Encrypt message using AES, now only support aes_256_cbc. Flag can be overridden with --no-encrypt"
         )]
         #[serde(skip_serializing)]
-        pub encrypt: Option<bool>,
+        pub encrypt: bool,
+
+        #[arg(long, overrides_with = "encrypt", hide = true)]
+        #[serde(skip_serializing)]
+        pub no_encrypt: bool,
 
         #[arg(long, help = "Used for encryption")]
         #[serde(skip_serializing)]
@@ -158,27 +166,24 @@ mod app {
             if self.server.is_none() || self.device_key.is_none() {
                 panic!("Missing server or device_id")
             }
-            if let Some(true) = self.encrypt {
-                if self.key.is_none() || self.iv.is_none() {
-                    panic!("When using encryption, key and iv must be provided at the same time")
-                }
+            if self.encrypt && (self.key.is_none() || self.iv.is_none()) {
+                panic!("When using encryption, key and iv must be provided at the same time")
             }
         }
 
         pub fn dumps(&self) -> String {
             let data = serde_json::to_string(self).expect("Converting to JSON string");
-            match self.encrypt {
-                Some(true) => {
-                    format!(
-                        "ciphertext={}",
-                        encrypt_message(
-                            self.key.as_ref().unwrap().as_bytes(),
-                            self.iv.as_ref().unwrap().as_bytes(),
-                            data.as_bytes(),
-                        )
+            if self.encrypt {
+                format!(
+                    "ciphertext={}",
+                    encrypt_message(
+                        self.key.as_ref().unwrap().as_bytes(),
+                        self.iv.as_ref().unwrap().as_bytes(),
+                        data.as_bytes(),
                     )
-                }
-                _ => data,
+                )
+            } else {
+                data
             }
         }
 
@@ -197,17 +202,20 @@ mod app {
             update_field!(group);
             update_field!(icon);
             update_field!(sound);
-            update_field!(encrypt);
+            // update_field!(encrypt);
 
             if !self.thats_all && self.server.is_none() {
                 self.server = Some(String::from("https://api.day.app"));
             }
             if !self.archive && !self.no_archive {
                 match config.archive {
-                    Some(true) => {self.archive = true},
-                    Some(false) => {self.no_archive = true},
-                    None => {},
+                    Some(true) => self.archive = true,
+                    Some(false) => self.no_archive = true,
+                    None => {}
                 }
+            }
+            if !self.encrypt && !self.no_encrypt {
+                self.encrypt = config.encrypt.unwrap_or(false);
             }
             if self.key.is_some() ^ self.iv.is_some() {
                 panic!("When using encryption, key and iv must be provided at the same time")
@@ -244,9 +252,10 @@ mod app {
                 ))
                 .header(
                     "Content-Type",
-                    match self.encrypt {
-                        Some(true) => "application/x-www-form-urlencoded",
-                        _ => "application/json; charset=utf-8",
+                    if self.encrypt {
+                        "application/x-www-form-urlencoded"
+                    } else {
+                        "application/json; charset=utf-8"
                     },
                 )
                 .body(self.dumps())
@@ -263,8 +272,16 @@ mod app {
                 "The message will be sent to {}/{}",
                 // with_default_protocol(&self.server.clone().unwrap_or("".to_string())),
                 // self.device_key.as_ref().unwrap(),
-                if self.server.as_ref().is_some() { with_default_protocol(&self.server.clone().unwrap()) } else { "no_server".to_string() },
-                if self.device_key.as_ref().is_some() { "xxxxx" } else { "no_device_key" },
+                if self.server.as_ref().is_some() {
+                    with_default_protocol(&self.server.clone().unwrap())
+                } else {
+                    "no_server".to_string()
+                },
+                if self.device_key.as_ref().is_some() {
+                    "xxxxx"
+                } else {
+                    "no_device_key"
+                },
             );
             println!("{}", self.dumps());
         }
