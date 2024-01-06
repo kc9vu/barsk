@@ -72,18 +72,18 @@ mod app {
         no_archive: bool,
 
         #[arg(
-            short = 'L',
+            short,
             long,
             help = "Push interrupt level [possible values: active, timeSensitive, passive]"
         )]
         #[serde(skip_serializing_if = "Option::is_none")]
         pub level: Option<String>,
 
-        #[arg(short = 'U', long, help = "URL on click")]
+        #[arg(short, long, help = "URL on click")]
         #[serde(skip_serializing_if = "Option::is_none")]
         pub url: Option<String>,
 
-        #[arg(short = 'G', long, help = "Group the messages")]
+        #[arg(short, long, help = "Group the messages")]
         #[serde(skip_serializing_if = "Option::is_none")]
         pub group: Option<String>,
 
@@ -131,7 +131,11 @@ mod app {
         #[serde(skip_serializing)]
         thats_all: bool,
 
-        #[arg(long, help = "Print the message to be sent instead of sending it")]
+        #[arg(
+            short = 'p',
+            long,
+            help = "Print the message to be sent instead of sending it"
+        )]
         #[serde(skip_serializing)]
         dry_run: bool,
 
@@ -139,13 +143,13 @@ mod app {
         #[serde(skip_serializing)]
         pub server: Option<String>,
 
-        #[arg(short = 'd', long)]
+        #[arg(short, long = "device")]
         #[serde(skip_serializing)]
         pub device_key: Option<String>,
     }
 
     fn is_false(value: &bool) -> bool {
-        !value
+        !*value
     }
 
     fn serialize_archive<S>(_value: &bool, serializer: S) -> Result<S::Ok, S::Error>
