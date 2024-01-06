@@ -27,7 +27,7 @@ pub mod utils {
 mod app {
     use std::fs::File;
 
-    use clap::Parser;
+    use clap::{Parser, ArgAction};
     use serde::{Deserialize, Serialize, Serializer};
 
     use super::utils::{catch_all::with_default_protocol, secret::encrypt_message};
@@ -63,8 +63,8 @@ mod app {
         #[serde(rename = "isArchive", skip_serializing_if = "is_false", serialize_with = "serialize_archive")]
         archive: bool,
 
-        #[arg(long, overrides_with = "archive", hide = true)]
-        #[serde(skip_serializing)]
+        #[arg(long, overrides_with = "archive", hide = true, action = ArgAction::SetTrue)]
+        #[serde(rename = "isArchive", skip_serializing_if = "is_false", serialize_with = "serialize_no_archive")]
         no_archive: bool,
 
         #[arg(
@@ -146,6 +146,12 @@ mod app {
     {
         serializer.serialize_str("1")
     }
+    fn serialize_no_archive<S>(_value: &bool, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_str("0")
+    }
 
     impl Bark {
         pub fn check(&self) {
@@ -197,7 +203,11 @@ mod app {
                 self.server = Some(String::from("https://api.day.app"));
             }
             if !self.archive && !self.no_archive {
-                self.archive = config.archive.unwrap_or(false);
+                match config.archive {
+                    Some(true) => {self.archive = true},
+                    Some(false) => {self.no_archive = true},
+                    None => {},
+                }
             }
             if self.key.is_some() ^ self.iv.is_some() {
                 panic!("When using encryption, key and iv must be provided at the same time")
