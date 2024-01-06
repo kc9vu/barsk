@@ -27,7 +27,7 @@ pub mod utils {
 mod app {
     use std::fs::File;
 
-    use clap::{Parser, ArgAction};
+    use clap::Parser;
     use serde::{Deserialize, Serialize, Serializer};
 
     use super::utils::{catch_all::with_default_protocol, secret::encrypt_message};
@@ -63,8 +63,8 @@ mod app {
         #[serde(rename = "isArchive", skip_serializing_if = "is_false", serialize_with = "serialize_archive")]
         archive: bool,
 
-        #[arg(long, overrides_with = "archive", hide = true, action = ArgAction::SetTrue)]
-        #[serde(rename = "isArchive", skip_serializing_if = "is_false", serialize_with = "serialize_no_archive")]
+        #[arg(long, overrides_with = "archive", hide = true)]
+        #[serde(skip_serializing)]
         no_archive: bool,
 
         #[arg(
@@ -145,12 +145,6 @@ mod app {
         S: Serializer,
     {
         serializer.serialize_str("1")
-    }
-    fn serialize_no_archive<S>(_value: &bool, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        serializer.serialize_str("0")
     }
 
     impl Bark {
