@@ -8,6 +8,7 @@ A bark cli written by Rust.
 - [x] Full functioning
 - [x] Ecryption support(aes_256_cbc)
 - [ ] More Encryption: aes_192_cbc, aes_128_cbc, aes_256_ecb, aes_192_ecb, aes_128_ecb
+- [ ] Simplifying parameters
 
 ## Help
 
