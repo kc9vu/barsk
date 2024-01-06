@@ -34,7 +34,7 @@ mod app {
     use super::utils::{secret::encrypt_message, catch_all::with_default_protocol};
 
     #[derive(Parser, Serialize, Clone)]
-    #[command(author, version, about, long_about = None)]
+    #[command(name = "barsk", author, version, about, long_about = None)]
     pub struct Bark {
         #[arg(help = "Push content")]
         pub body: String,
