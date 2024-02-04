@@ -1,5 +1,5 @@
 pub mod utils {
-    pub mod secret {
+    pub mod cryptographic {
         use openssl::base64::encode_block;
         use openssl::symm::{encrypt, Cipher};
         use percent_encoding::{utf8_percent_encode, NON_ALPHANUMERIC};
@@ -14,7 +14,7 @@ pub mod utils {
     }
 
     pub mod catch_all {
-        pub fn with_default_protocol(address: &String) -> String {
+        pub fn supplement_protocol(address: &str) -> String {
             if !address.contains("://") {
                 format!("https://{address}")
             } else {
@@ -30,7 +30,7 @@ mod app {
     use clap::{ArgAction, Parser};
     use serde::{Deserialize, Serialize, Serializer};
 
-    use super::utils::{catch_all::with_default_protocol, secret::encrypt_message};
+    use super::utils::{catch_all::supplement_protocol, cryptographic::encrypt_message};
 
     #[derive(Parser, Serialize, Clone)]
     #[command(name = "barsk", author, version, about, long_about = None)]
@@ -175,7 +175,7 @@ mod app {
             }
         }
 
-        pub fn dumps(&self) -> String {
+        pub fn to_message(&self) -> String {
             let data = serde_json::to_string(self).expect("Converting to JSON string");
             if self.encrypt {
                 format!(
@@ -251,7 +251,7 @@ mod app {
             let result = client
                 .post(format!(
                     "{}/{}",
-                    with_default_protocol(self.server.as_ref().unwrap()),
+                    supplement_protocol(self.server.as_ref().unwrap()),
                     self.device_key.as_ref().unwrap(),
                 ))
                 .header(
@@ -262,7 +262,7 @@ mod app {
                         "application/json; charset=utf-8"
                     },
                 )
-                .body(self.dumps())
+                .body(self.to_message())
                 .send()
                 .expect("Failed to send message! Please check network connection!")
                 .json::<Res>()
@@ -276,18 +276,20 @@ mod app {
                 "The message will be sent to {}/{}",
                 // with_default_protocol(&self.server.clone().unwrap_or("".to_string())),
                 // self.device_key.as_ref().unwrap(),
-                if self.server.as_ref().is_some() {
-                    with_default_protocol(&self.server.clone().unwrap())
-                } else {
-                    "no_server".to_string()
-                },
-                if self.device_key.as_ref().is_some() {
-                    "xxxxx"
-                } else {
-                    "no_device_key"
-                },
+                // if self.server.as_ref().is_some() {
+                //     with_default_protocol(&self.server.clone().unwrap())
+                // } else {
+                //     "no_server".to_string()
+                // },
+                self.server.as_ref().map_or(String::from("no_server"), |v| supplement_protocol(v)),
+                self.device_key.as_ref().map_or("no_device_key", |_| "xxxxx"),
+                // if self.device_key.as_ref().is_some() {
+                //     "xxxxx"
+                // } else {
+                //     "no_device_key"
+                // },
             );
-            println!("{}", self.dumps());
+            println!("{}", self.to_message());
         }
 
         pub fn execute(&self) {
@@ -347,9 +349,9 @@ mod app {
 
     #[derive(Deserialize)]
     pub struct Res {
-        // pub code: u16,
+        pub code: u16,
         pub message: String,
-        // pub timestamp: u64,
+        pub timestamp: u64,
     }
 }
 
