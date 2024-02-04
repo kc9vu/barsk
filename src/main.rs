@@ -4,9 +4,9 @@ pub mod utils {
         use openssl::symm::{encrypt, Cipher};
         use percent_encoding::{utf8_percent_encode, NON_ALPHANUMERIC};
 
-        pub fn encrypt_message(key: &[u8], iv: &[u8], data: &[u8]) -> String {
+        pub fn encrypt_message(key: &[u8], iv: &[u8], data: &str) -> String {
             let cipher = Cipher::aes_256_cbc();
-            let cipher_text = encrypt(cipher, key, Some(iv), data)
+            let cipher_text = encrypt(cipher, key, Some(iv), data.as_bytes())
                 .expect("Message encryption failed, check key and iv");
             let b64 = encode_block(&cipher_text);
             utf8_percent_encode(&b64, NON_ALPHANUMERIC).to_string()
@@ -181,7 +181,7 @@ mod app {
                     encrypt_message(
                         self.key.as_ref().unwrap().as_bytes(),
                         self.iv.as_ref().unwrap().as_bytes(),
-                        data.as_bytes(),
+                        &data,
                     )
                 )
             } else {
@@ -272,20 +272,8 @@ mod app {
         fn print(&self) {
             println!(
                 "The message will be sent to {}/{}",
-                // with_default_protocol(&self.server.clone().unwrap_or("".to_string())),
-                // self.device_key.as_ref().unwrap(),
-                // if self.server.as_ref().is_some() {
-                //     with_default_protocol(&self.server.clone().unwrap())
-                // } else {
-                //     "no_server".to_string()
-                // },
                 self.server.as_ref().map_or(String::from("no_server"), |v| supplement_protocol(v)),
                 self.device_key.as_ref().map_or("no_device_key", |_| "xxxxx"),
-                // if self.device_key.as_ref().is_some() {
-                //     "xxxxx"
-                // } else {
-                //     "no_device_key"
-                // },
             );
             println!("{}", self.to_message());
         }
