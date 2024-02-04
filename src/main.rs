@@ -244,8 +244,8 @@ mod app {
             bark
         }
 
-        fn send(&self) {
-            let client = reqwest::blocking::Client::new();
+        fn send(&self, client: &reqwest::blocking::Client) {
+            // let client = reqwest::blocking::Client::new();
             let result = client
                 .post(format!(
                     "{}/{}",
@@ -279,11 +279,12 @@ mod app {
         }
 
         pub fn execute(&self) {
+            let client = reqwest::blocking::Client::new();
             if self.dry_run {
                 self.print();
             } else {
                 self.check();
-                self.send();
+                self.send(&client);
             }
         }
     }
