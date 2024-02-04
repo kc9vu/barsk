@@ -32,7 +32,7 @@ mod app {
 
     #[derive(Parser, Serialize, Clone)]
     #[command(name = "barsk", author, version, about, long_about = None)]
-    pub struct Bark {
+    pub struct BarskArgs {
         #[arg(help = "Push content")]
         pub body: String,
 
@@ -127,7 +127,7 @@ mod app {
 
         #[arg(short = 'z', long, help = "Don't load default config")]
         #[serde(skip_serializing)]
-        thats_all: bool,
+        pub thats_all: bool,
 
         #[arg(
             short = 'p',
@@ -135,7 +135,7 @@ mod app {
             help = "Print the message to be sent instead of sending it"
         )]
         #[serde(skip_serializing)]
-        dry_run: bool,
+        pub dry_run: bool,
 
         #[arg(short = 'S', long, help = "[http[s]://]host[:port]")]
         #[serde(skip_serializing)]
@@ -163,7 +163,7 @@ mod app {
         serializer.serialize_str("0")
     }
 
-    impl Bark {
+    impl BarskArgs {
         pub fn check(&self) {
             if self.server.is_none() || self.device_key.is_none() {
                 panic!("Missing server or device_id")
@@ -244,7 +244,7 @@ mod app {
             bark
         }
 
-        fn send(&self, client: &reqwest::blocking::Client) -> Res {
+        pub fn send(&self, client: &reqwest::blocking::Client) -> Res {
             client
                 .post(format!(
                     "{}/{}",
@@ -266,7 +266,7 @@ mod app {
                 .expect("Unable to parse response format!")
         }
 
-        fn print(&self) {
+        pub fn print(&self) {
             println!(
                 "The message will be sent to {}/{}",
                 self.server
@@ -277,17 +277,6 @@ mod app {
                     .map_or("no_device_key", |_| "xxxxx"),
             );
             println!("{}", self.to_message());
-        }
-
-        pub fn execute(&self) {
-            let client = reqwest::blocking::Client::new();
-            if self.dry_run {
-                self.print();
-            } else {
-                self.check();
-                let result = self.send(&client);
-                println!("{}", &result.message);
-            }
         }
     }
 
@@ -344,9 +333,17 @@ mod app {
     }
 }
 
-use app::Bark;
+use app::BarskArgs;
 use clap::Parser;
 
 fn main() {
-    Bark::parse().by_file_config().execute();
+    let args = BarskArgs::parse().by_file_config();
+    if args.dry_run {
+        args.print();
+    } else {
+        args.check();
+        let client = reqwest::blocking::Client::new();
+        let res = args.send(&client);
+        println!("{}", &res.message);
+    }
 }
