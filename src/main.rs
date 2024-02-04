@@ -13,13 +13,11 @@ pub mod utils {
         }
     }
 
-    pub mod catch_all {
-        pub fn supplement_protocol(address: &str) -> String {
-            if !address.contains("://") {
-                format!("https://{address}")
-            } else {
-                address.to_owned()
-            }
+    pub fn supplement_protocol(address: &str) -> String {
+        if !address.contains("://") {
+            format!("https://{address}")
+        } else {
+            address.to_owned()
         }
     }
 }
@@ -30,7 +28,7 @@ mod app {
     use clap::{ArgAction, Parser};
     use serde::{Deserialize, Serialize, Serializer};
 
-    use super::utils::{catch_all::supplement_protocol, cryptographic::encrypt_message};
+    use super::utils::{supplement_protocol, cryptographic::encrypt_message};
 
     #[derive(Parser, Serialize, Clone)]
     #[command(name = "barsk", author, version, about, long_about = None)]
