@@ -28,7 +28,7 @@ mod app {
     use clap::{ArgAction, Parser};
     use serde::{Deserialize, Serialize, Serializer};
 
-    use super::utils::{supplement_protocol, cryptographic::encrypt_message};
+    use super::utils::{cryptographic::encrypt_message, supplement_protocol};
 
     #[derive(Parser, Serialize, Clone)]
     #[command(name = "barsk", author, version, about, long_about = None)]
@@ -244,9 +244,8 @@ mod app {
             bark
         }
 
-        fn send(&self, client: &reqwest::blocking::Client) {
-            // let client = reqwest::blocking::Client::new();
-            let result = client
+        fn send(&self, client: &reqwest::blocking::Client) -> Res {
+            client
                 .post(format!(
                     "{}/{}",
                     supplement_protocol(self.server.as_ref().unwrap()),
@@ -264,16 +263,18 @@ mod app {
                 .send()
                 .expect("Failed to send message! Please check network connection!")
                 .json::<Res>()
-                .expect("Unable to parse response format!");
-
-            println!("{}", &result.message);
+                .expect("Unable to parse response format!")
         }
 
         fn print(&self) {
             println!(
                 "The message will be sent to {}/{}",
-                self.server.as_ref().map_or(String::from("no_server"), |v| supplement_protocol(v)),
-                self.device_key.as_ref().map_or("no_device_key", |_| "xxxxx"),
+                self.server
+                    .as_ref()
+                    .map_or(String::from("no_server"), |v| supplement_protocol(v)),
+                self.device_key
+                    .as_ref()
+                    .map_or("no_device_key", |_| "xxxxx"),
             );
             println!("{}", self.to_message());
         }
@@ -284,7 +285,8 @@ mod app {
                 self.print();
             } else {
                 self.check();
-                self.send(&client);
+                let result = self.send(&client);
+                println!("{}", &result.message);
             }
         }
     }
