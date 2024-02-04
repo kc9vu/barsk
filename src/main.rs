@@ -190,11 +190,11 @@ mod app {
         }
 
         /// Update missing options from config.
-        pub fn update_with_config(&mut self, config: &Conf) {
+        pub fn update_with_config(&mut self, config: Conf) {
             macro_rules! update_field {
                 ($field:ident) => {
-                    if self.$field.is_none() {
-                        self.$field = config.$field.clone();
+                    if self.$field.is_none() && config.$field.is_some() {
+                        self.$field = config.$field;
                     }
                 };
             }
@@ -234,10 +234,10 @@ mod app {
         pub fn by_file_config(&self) -> Self {
             let mut bark = self.clone();
             if let Some(config_file) = self.config_file.as_ref() {
-                bark.update_with_config(&Conf::from_file(config_file));
+                bark.update_with_config(Conf::from_file(config_file));
             } else if !self.thats_all {
                 if let Some(conf) = Conf::from_default_file() {
-                    bark.update_with_config(&conf);
+                    bark.update_with_config(conf);
                 }
             }
 
