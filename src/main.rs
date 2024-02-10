@@ -1,4 +1,5 @@
 pub mod utils {
+    #[cfg(feature = "cipher")]
     pub mod cryptographic {
         use openssl::base64::encode_block;
         use openssl::symm::{encrypt, Cipher};
@@ -25,10 +26,13 @@ pub mod utils {
 mod app {
     use std::fs::File;
 
+    use anyhow::Result;
     use clap::{ArgAction, Parser};
     use serde::{Deserialize, Serialize, Serializer};
 
-    use super::utils::{cryptographic::encrypt_message, supplement_protocol};
+    use super::utils::supplement_protocol;
+    #[cfg(feature = "cipher")]
+    use super::utils::cryptographic::encrypt_message;
 
     #[derive(Parser, Serialize, Clone)]
     #[command(name = "barsk", author, version, about, long_about = None)]
@@ -168,25 +172,36 @@ mod app {
             if self.server.is_none() || self.device_key.is_none() {
                 panic!("Missing server or device_id")
             }
+            #[cfg(feature = "cipher")]
             if self.encrypt && (self.key.is_none() || self.iv.is_none()) {
                 panic!("When using encryption, key and iv must be provided at the same time")
             }
+
+            #[cfg(not(feature = "cipher"))]
+            if self.encrypt {
+                panic!("This compansion don't support message encrypt")
+            }
         }
 
-        pub fn to_message(&self) -> String {
-            let data = serde_json::to_string(self).expect("Converting to JSON string");
+        pub fn to_message(&self) -> Result<String> {
+            let data = serde_json::to_string(self)?;
+
+            #[cfg(feature = "cipher")]
             if self.encrypt {
-                format!(
+                Ok(format!(
                     "ciphertext={}",
                     encrypt_message(
                         self.key.as_ref().unwrap().as_bytes(),
                         self.iv.as_ref().unwrap().as_bytes(),
                         &data,
                     )
-                )
+                ))
             } else {
-                data
+                Ok(data)
             }
+
+            #[cfg(not(feature = "cipher"))]
+            Ok(data)
         }
 
         /// Update missing options from config.
@@ -231,21 +246,21 @@ mod app {
         /// _no_default != true_, automatically read from the default location.
         /// If the file is found, return a new Conf that supplements the missing
         /// options. Otherwise return a clone.
-        pub fn by_file_config(&self) -> Self {
+        pub fn by_file_config(&self) -> Result<Self> {
             let mut bark = self.clone();
             if let Some(config_file) = self.config_file.as_ref() {
-                bark.update_with_config(Conf::from_file(config_file));
+                bark.update_with_config(Conf::from_file(config_file)?);
             } else if !self.thats_all {
-                if let Some(conf) = Conf::from_default_file() {
+                if let Some(conf) = Conf::from_default_file()? {
                     bark.update_with_config(conf);
                 }
             }
 
-            bark
+            Ok(bark)
         }
 
-        pub fn send(&self, client: &reqwest::blocking::Client) -> Res {
-            client
+        pub fn send(&self, client: &reqwest::blocking::Client) -> Result<Res> {
+            Ok(client
                 .post(format!(
                     "{}/{}",
                     supplement_protocol(self.server.as_ref().unwrap()),
@@ -259,14 +274,12 @@ mod app {
                         "application/json; charset=utf-8"
                     },
                 )
-                .body(self.to_message())
-                .send()
-                .expect("Failed to send message! Please check network connection!")
-                .json::<Res>()
-                .expect("Unable to parse response format!")
+                .body(self.to_message()?)
+                .send()?
+                .json::<Res>()?)
         }
 
-        pub fn print(&self) {
+        pub fn print(&self) -> Result<()>{
             println!(
                 "The message will be sent to {}/{}",
                 self.server
@@ -276,7 +289,9 @@ mod app {
                     .as_ref()
                     .map_or("no_device_key", |_| "xxxxx"),
             );
-            println!("{}", self.to_message());
+            println!("{}", self.to_message()?);
+
+            Ok(())
         }
     }
 
@@ -303,24 +318,23 @@ mod app {
             }
         }
 
-        fn from_file(path: &str) -> Self {
-            let config: Self = serde_json::from_reader(File::open(path).expect("...")).expect("");
+        fn from_file(path: &str) -> Result<Self> {
+            let config: Self = serde_json::from_reader(File::open(path)?)?;
             config.check();
-            config
+            Ok(config)
         }
 
-        fn from_default_file() -> Option<Self> {
-            let config_file = std::env::current_exe()
-                .expect("Cannot read current path")
+        fn from_default_file() -> Result<Option<Self>> {
+            let config_file = std::env::current_exe()?
                 .parent()
                 .expect("File path contains some characters that cannot be converted")
                 .join("bark.json");
             if config_file.exists() {
-                Some(Conf::from_file(config_file.to_str().expect(
+                Ok(Some(Conf::from_file(config_file.to_str().expect(
                     "File path contains some characters that cannot be converted",
-                )))
+                ))?))
             } else {
-                None
+                Ok(None)
             }
         }
     }
@@ -333,17 +347,19 @@ mod app {
     }
 }
 
+use anyhow::Result;
 use app::BarskArgs;
 use clap::Parser;
 
-fn main() {
-    let args = BarskArgs::parse().by_file_config();
+fn main() -> Result<()> {
+    let args = BarskArgs::parse().by_file_config()?;
     if args.dry_run {
-        args.print();
+        args.print()?;
     } else {
         args.check();
         let client = reqwest::blocking::Client::new();
-        let res = args.send(&client);
+        let res = args.send(&client)?;
         println!("{}", &res.message);
     }
+    Ok(())
 }
