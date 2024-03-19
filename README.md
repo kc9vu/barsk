@@ -36,7 +36,7 @@ Options:
       --badge <BADGE>         Push badge, can be any number
       --icon <ICON>           Setting custom icons
       --sound <SOUND>         Setting different ringtones
-  -e, --encrypt               Encrypt message using AES. Can be overridden with --no-encrypt/-e
+  -e, --encrypt               Encrypt message using AES. Can be overridden with --no-encrypt/-E
       --cipher <CIPHER>       Can be aes_xxx_cbc aes_xxx_ecb (xxx is 128, 192, 256)
       --key <KEY>             Used for encryption
       --iv <IV>               Used for encryption
