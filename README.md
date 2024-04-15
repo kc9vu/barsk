@@ -79,7 +79,7 @@ Options:
           The config file path
 
   -z, --thats-all
-          Don't use any config file, it means run without adding any unspecified parameters
+          Don't use any config file, it means run without adding any unspecified arguments
 
   -p, --dry-run
           Print message instead of sending it

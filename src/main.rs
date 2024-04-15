@@ -125,7 +125,7 @@ struct Cli {
     #[arg(long = "config", short = 'F', action = ArgAction::Set)]
     config_file: Option<String>,
 
-    /// Don't use any config file, it means run without adding any unspecified parameters
+    /// Don't use any config file, it means run without adding any unspecified arguments
     #[arg(long, short = 'z')]
     thats_all: bool,
 
