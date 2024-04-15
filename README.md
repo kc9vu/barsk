@@ -1,6 +1,6 @@
 # barsk
 
-version 0.5.0
+version 0.6.0
 
 A bark cli written by Rust.
 
@@ -8,45 +8,87 @@ A bark cli written by Rust.
 
 ## Features
 
-- [x] Full functioning
-- [x] Ecryption support(aes_256_cbc)
-- [x] More Encryption: aes_192_cbc, aes_128_cbc, aes_256_ecb, aes_192_ecb, aes_128_ecb
-- [x] Simplifying parameters: level
-- [ ] Docs
+- [x] Clear command line interface
+- [x] Config file support
+- [x] Encrypt message before push
+- [x] Encryption support: aes_256_cbc, aes_192_cbc, aes_128_cbc, aes_256_ecb, aes_192_ecb, aes_128_ecb
 
 ## Help
 
 ```plain
-A bark cli written by Rust
-
 Usage: barsk.exe [OPTIONS] <BODY>
 
 Arguments:
-  <BODY>  Push content
+  <BODY>
+          Push content
 
 Options:
-  -t, --title <TITLE>         Push title
-  -C, --auto-copy             Automatically copy push content
-  -c, --copy <COPY>           Copy the content at push, otherwise copy BODY
-  -a, --archive               Archive the push. Can be overridden with --no-archive
-  -l, --level <LEVEL>         Push interrupt level [possible values: active, timeSensitive/instant, passive]
-                              Simple as --active, --time-sensitive/--instant, --passive
-  -u, --url <URL>             URL on click
-  -g, --group <GROUP>         Group the messages
-      --badge <BADGE>         Push badge, can be any number
-      --icon <ICON>           Setting custom icons
-      --sound <SOUND>         Setting different ringtones
-  -e, --encrypt               Encrypt message using AES. Can be overridden with --no-encrypt/-E
-      --cipher <CIPHER>       Can be aes_xxx_cbc aes_xxx_ecb (xxx is 128, 192, 256)
-      --key <KEY>             Used for encryption
-      --iv <IV>               Used for encryption
-  -F, --config <CONFIG_FILE>  Simplifying options with configuration files
-  -z, --thats-all             Don't load default config
-  -p, --dry-run               Print the message to be sent instead of sending it
-  -s, --server <SERVER>       [http[s]://]host[:port]
-  -d, --device <DEVICE_KEY>
-  -h, --help                  Print help
-  -V, --version               Print version
+  -t, --title <TITLE>
+          The title will be shown on the notification bar
+
+  -c, --copy <COPY>
+          The content will be copied to clipboard or <BODY>
+
+  -C, --auto-copy
+          Auto copy the content to clipboard. Available under iOS 14.5
+
+  -a, --archive
+          Archiving the message to history. use --no-archive/-A to disable
+
+  -l, --level <LEVEL>
+          The push interruption level. Simple as --active, --time-sensitive (alias --instant), --passive
+
+          [possible values: active, time-sensitive, instant, passive]
+
+  -g, --group <GROUP>
+          The group name in history messages
+
+      --url <URL>
+          The URL will be opened when the notification is clicked
+
+      --sound <SOUND>
+          The sound name or sound url will be played
+
+      --icon <ICON>
+          The icon url will be shown in the notification bar
+
+  -b, --badge <BADGE>
+          The badge number will be shown in the app icon
+
+  -e, --encrypt
+          Push the encrypted message to server. Use --no-encrypt/-E to disable
+
+  -m, --method <METHOD>
+          Encryption method. Can be aes128cbc aes192cbc aes256cbc aes128ecb aes192ecb aes256ecb
+
+          [default: aes128cbc]
+
+      --aes-key <AES_KEY>
+          The AES key for encryption
+
+      --aes-iv <AES_IV>
+          The AES initialization vector for encryption
+
+  -s, --server <SERVER>
+          The server url for push message
+
+  -d, --device-key <DEVICE_KEY>
+          The device key for push message
+
+  -F, --config <CONFIG_FILE>
+          The config file path
+
+  -z, --thats-all
+          Don't use any config file, it means run without adding any unspecified parameters
+
+  -p, --dry-run
+          Print message instead of sending it
+
+  -h, --help
+          Print help (see a summary with '-h')
+
+  -V, --version
+          Print version
 ```
 
 ## Config file
@@ -54,15 +96,25 @@ Options:
 ```json
 {
     "server": "https://api.day.app",
-    "device_key": "...",
-    "archive": false,
-    "level": "active",
-    "group": "From Windows",
-    "icon": "https://www.example.com/favicon.ico",
-    "sound": "bell",
+    "device_key": "<KEY>",
     "encrypt": true,
-    "cipher": "aes256cbc",
-    "key": "...",
-    "iv": "..."
+    "method": "aes256cbc",
+    "aes_key": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+    "aes_iv": "xxxxxxxxxxxxxxxx",
+    "group": "Test",
+    "sound": "birdsong"
 }
 ```
+
+## Crates Used
+
+- [base64](https://github.com/alexcrichton/base64)
+- [clap](https://github.com/clap-rs/clap)
+- [reqwest](https://github.com/seanmonstar/reqwest)
+- [rust-crypto](https://github.com/DaGenix/rust-crypto)
+- [serde](https://github.com/serde-rs/serde)
+- [serde_json](https://github.com/serde-rs/json)
+
+## LICENSE
+
+[MIT](LICENSE)
