@@ -1,21 +1,36 @@
+use clap::ValueEnum;
 use serde::{
     de::{Error, Visitor},
     Deserialize, Serialize,
 };
+use Level::*;
 
-#[derive(clap::ValueEnum, Clone, Copy, Serialize, Debug)]
-pub enum Level {
+#[derive(ValueEnum, Clone, Serialize, Debug)]
+pub(crate) enum Level {
     Active,
     TimeSensitive,
     Instant,
     Passive,
 }
 
-#[derive(Deserialize)]
-pub struct Res {
-    pub code: u16,
-    pub message: String,
-    pub timestamp: u64,
+impl From<Level> for String {
+    fn from(level: Level) -> Self {
+        match level {
+            Active => "active".to_string(),
+            TimeSensitive | Instant => "timeSensitive".to_string(),
+            Passive => "passive".to_string(),
+        }
+    }
+}
+
+impl<'a> From<&Level> for &'a str {
+    fn from(level: &Level) -> Self {
+        match level {
+            Active => "active",
+            TimeSensitive | Instant => "timeSensitive",
+            Passive => "passive",
+        }
+    }
 }
 
 impl<'de> Deserialize<'de> for Level {

@@ -1,32 +1,12 @@
-use cli::structs::Res;
-use cli::BarkArgs;
+use crate::Res;
 
-fn main() {
-    if let Err(e) = run_command() {
-        eprintln!("error: {e}");
-    }
-}
+mod commands;
+// pub(crate) mod de;
+pub(crate) mod msg;
 
-fn run_command() -> Result<(), String> {
-    let args = BarkArgs::parse()?;
+pub(crate) use commands::Level;
 
-    if args.dry_run {
-        args.print()?;
-    } else {
-        args.check()?;
-        let res = send_message(
-            args.server.as_deref().unwrap(),
-            args.device_key.as_deref().unwrap(),
-            args.to_message()?,
-            args.encrypt,
-        )?;
-        println!("{}", res.message);
-    }
-
-    Ok(())
-}
-
-fn send_message(
+pub(crate) fn send_message(
     server: &str,
     device_key: &str,
     message: String,
