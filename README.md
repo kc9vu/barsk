@@ -1,6 +1,6 @@
 # barsk
 
-version 0.6.0
+version 1.0.0
 
 A bark cli written by Rust.
 
@@ -16,6 +16,8 @@ A bark cli written by Rust.
 ## Help
 
 ```plain
+Push to your iPhone with text, links and more!
+
 Usage: barsk.exe [OPTIONS] <BODY>
 
 Arguments:
@@ -108,7 +110,7 @@ Options:
 
 ## Crates Used
 
-- [base64](https://github.com/alexcrichton/base64)
+- [base64](https://github.com/marshallpierce/rust-base64)
 - [clap](https://github.com/clap-rs/clap)
 - [reqwest](https://github.com/seanmonstar/reqwest)
 - [rust-crypto](https://github.com/DaGenix/rust-crypto)

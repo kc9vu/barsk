@@ -1,9 +1,10 @@
-use crate::Res;
+use crate::Resp;
 
 mod commands;
 // pub(crate) mod de;
 pub(crate) mod msg;
 
+use anyhow::Result;
 pub(crate) use commands::Level;
 
 pub(crate) fn send_message(
@@ -11,9 +12,9 @@ pub(crate) fn send_message(
     device_key: &str,
     message: String,
     encrypted: bool,
-) -> Result<Res, String> {
+) -> Result<Resp> {
     let client = reqwest::blocking::Client::new();
-    match client
+    Ok(client
         .post(format!("{}/{}", server, device_key))
         .header(
             "Content-Type",
@@ -28,14 +29,8 @@ pub(crate) fn send_message(
         } else {
             message
         })
-        .send()
-    {
-        Ok(resp) => match resp.json::<Res>() {
-            Ok(r) => Ok(r),
-            Err(e) => Err(e.to_string()),
-        },
-        Err(e) => Err(e.to_string()),
-    }
+        .send()?
+        .json::<Resp>()?)
 }
 
 fn urlencoding(s: &str) -> String {

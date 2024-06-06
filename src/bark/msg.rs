@@ -1,3 +1,4 @@
+use anyhow::Result;
 use base64::prelude::{Engine, BASE64_STANDARD};
 use clap::ValueEnum;
 use crypto::{
@@ -30,7 +31,7 @@ pub(crate) enum Method {
 }
 
 impl<'de> Deserialize<'de> for Method {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    fn deserialize<D>(deserializer: D) -> core::result::Result<Self, D::Error>
     where
         D: serde::Deserializer<'de>,
     {
@@ -72,7 +73,7 @@ impl<'de> Deserialize<'de> for Method {
     }
 }
 
-pub(crate) fn is_valid_cipher(cipher: Method, key: &str, iv: Option<&str>) -> Result<(), String> {
+pub(crate) fn is_valid_cipher(cipher: Method, key: &str, iv: Option<&str>) -> Result<()> {
     match (
         cipher,
         key.len(),
@@ -87,16 +88,11 @@ pub(crate) fn is_valid_cipher(cipher: Method, key: &str, iv: Option<&str>) -> Re
         (Aes128Ecb, 16, _) => Ok(()),
         (Aes192Ecb, 24, _) => Ok(()),
         (Aes256Ecb, 32, _) => Ok(()),
-        _ => Err("Check aes_key and/or aes_iv".into()),
+        _ => Err(anyhow::anyhow!("Check aes_key and/or aes_iv")),
     }
 }
 
-pub(crate) fn encrypt(
-    plain: &str,
-    key: &str,
-    iv: Option<&str>,
-    method: Method,
-) -> Result<String, String> {
+pub(crate) fn encrypt(plain: &str, key: &str, iv: Option<&str>, method: Method) -> Result<String> {
     let key = key.as_bytes();
     let plain = plain.as_bytes();
     assert!(plain.len() < 4096);
@@ -132,7 +128,7 @@ pub(crate) fn encrypt(
         .encrypt(&mut read_buffer, &mut write_buffer, true)
         .is_err()
     {
-        return Err("Failed encrypt message".into());
+        return Err(anyhow::anyhow!("Failed encrypt message"));
     }
     let mut binding = write_buffer.take_read_buffer();
     let cipher = binding.take_remaining();

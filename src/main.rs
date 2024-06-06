@@ -1,3 +1,4 @@
+use anyhow::Result;
 use bark::{
     msg::{is_valid_cipher, Method},
     Level,
@@ -13,7 +14,7 @@ mod bark;
 #[command(
     name = "barsk",
     author,
-    about,
+    about = "Push to your iPhone with text, links and more!",
     version,
     max_term_width = 80,
     group(
@@ -39,7 +40,11 @@ struct Cli {
     auto_copy: bool,
 
     /// Archiving the message to history
-    #[arg(long, short, long_help = "Archiving the message to history. use --no-archive/-A to disable")]
+    #[arg(
+        long,
+        short,
+        long_help = "Archiving the message to history. use --no-archive/-A to disable"
+    )]
     archive: bool,
 
     #[arg(long, short = 'A', overrides_with = "archive", hide = true)]
@@ -86,7 +91,11 @@ struct Cli {
     badge: Option<String>,
 
     /// Push the encrypted message to server
-    #[arg(long, short, long_help = "Push the encrypted message to server. Use --no-encrypt/-E to disable")]
+    #[arg(
+        long,
+        short,
+        long_help = "Push the encrypted message to server. Use --no-encrypt/-E to disable"
+    )]
     encrypt: bool,
 
     #[arg(long, short = 'E', overrides_with = "encrypt", hide = true)]
@@ -136,7 +145,7 @@ struct Cli {
 
 impl Cli {
     fn parse() -> Self {
-        let mut cli = <Self as Parser>::parse();
+        let mut cli: Cli = Parser::parse();
         if cli.active {
             cli.level = Some(Level::Active);
         } else if cli.time_sensitive {
@@ -148,7 +157,7 @@ impl Cli {
         cli
     }
 
-    fn to_msg<'a>(&'a self, conf: &'a Conf) -> Result<Msg<'a>, String> {
+    fn to_msg<'a>(&'a self, conf: &'a Conf) -> Result<Msg<'a>> {
         Ok(Msg {
             body: self.body.as_str(),
             title: self.title.as_deref(),
@@ -174,7 +183,7 @@ impl Cli {
         })
     }
 
-    fn to_message(&self, conf: &Conf) -> Result<String, String> {
+    fn to_message(&self, conf: &Conf) -> Result<String> {
         let message = serde_json::to_string(&self.to_msg(conf)?).unwrap();
 
         if self.encrypt || conf.encrypt.unwrap_or(false) {
@@ -193,18 +202,18 @@ impl Cli {
                     conf.method.unwrap(),
                 )
             } else {
-                return Err("Failed to load encryption config".into());
+                return Err(anyhow::anyhow!("Failed to load encryption config"));
             };
 
-            Ok(bark::msg::encrypt(&message, key, iv, method)?)
+            bark::msg::encrypt(&message, key, iv, method)
         } else {
             Ok(message)
         }
     }
 
-    fn check_encryption(&self) -> Result<(), String> {
+    fn check_encryption(&self) -> Result<()> {
         if self.aes_key.is_none() {
-            return Err("Missing aes_key".into());
+            return Err(anyhow::anyhow!("Missing aes_key"));
         }
         is_valid_cipher(
             self.method,
@@ -216,7 +225,7 @@ impl Cli {
     }
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Default, Debug)]
 struct Conf {
     server: Option<String>,
     device_key: Option<String>,
@@ -233,42 +242,21 @@ struct Conf {
 
 impl Conf {
     fn empty() -> Self {
-        Self {
-            server: None,
-            device_key: None,
-            archive: None,
-            level: None,
-            group: None,
-            icon: None,
-            sound: None,
-            encrypt: None,
-            method: None,
-            aes_key: None,
-            aes_iv: None,
-        }
+        Default::default()
     }
 
-    fn from_filepath(path: &str) -> Result<Self, String> {
-        let reader = match std::fs::File::open(path) {
-            Ok(file) => file,
-            Err(e) => return Err(e.to_string()),
-        };
-        let config: Self = match serde_json::from_reader(reader) {
-            Ok(conf) => conf,
-            Err(e) => return Err(e.to_string()),
-        };
-        Ok(config)
+    fn from_filepath(path: &str) -> Result<Self> {
+        Ok(serde_json::from_reader(std::fs::File::open(path)?)?)
     }
 
-    fn from_executable_file() -> Result<Option<Self>, String> {
-        let exe_path = match std::env::current_exe() {
-            Ok(path) => path,
-            Err(e) => return Err(e.to_string()),
-        };
+    fn from_executable_file() -> Result<Option<Self>> {
+        let exe_path = std::env::current_exe()?;
         let cur_dir = match exe_path.parent() {
             Some(dir) => dir,
             None => {
-                return Err("Unable to locate the directory where the program is located".into())
+                return Err(anyhow::anyhow!(
+                    "Unable to locate the directory where the program is located"
+                ))
             }
         };
         let config_file = cur_dir.join("bark.json");
@@ -279,19 +267,18 @@ impl Conf {
         }
     }
 
-    fn check_encryption(&self) -> Result<(), String> {
+    fn check_encryption(&self) -> Result<()> {
         if self.method.is_none() {
-            return Err("Miss encryption method in the config file".into());
+            return Err(anyhow::anyhow!("Miss encryption method in the config file"));
         }
         if self.aes_key.is_none() {
-            return Err("Miss aes_key in the config file".into());
+            return Err(anyhow::anyhow!("Miss aes_key in the config file"));
         }
         is_valid_cipher(
             self.method.unwrap(),
             self.aes_key.as_ref().unwrap(),
             self.aes_iv.as_deref(),
-        )?;
-        Ok(())
+        )
     }
 }
 
@@ -332,13 +319,13 @@ struct Msg<'a> {
 
 #[allow(unused)]
 #[derive(Deserialize)]
-struct Res {
+struct Resp {
     code: u16,
     message: String,
     timestamp: u64,
 }
 
-fn run_command() -> Result<(), String> {
+fn run_command() -> Result<()> {
     let cli = Cli::parse();
 
     // Load a config from --config-file or from default path or empty
@@ -372,13 +359,15 @@ fn run_command() -> Result<(), String> {
         );
         println!("{}", message);
     } else {
+        let device_key = match cli.device_key.as_deref().or(conf.device_key.as_deref()) {
+            Some(value) => value,
+            None => return Err(anyhow::anyhow!("No device_key detect, please specify one")),
+        };
+
         // Send the message, print response message
         let res = send_message(
             server,
-            cli.device_key
-                .as_deref()
-                .or(conf.device_key.as_deref())
-                .unwrap(),
+            device_key,
             message,
             cli.encrypt || conf.encrypt.unwrap_or(false),
         )?;
