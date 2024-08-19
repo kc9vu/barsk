@@ -5,6 +5,8 @@ mod commands;
 pub(crate) mod msg;
 
 use anyhow::Result;
+use curl::easy::Easy;
+
 pub(crate) use commands::Level;
 
 pub(crate) fn send_message(
@@ -13,24 +15,31 @@ pub(crate) fn send_message(
     message: String,
     encrypted: bool,
 ) -> Result<Resp> {
-    let client = reqwest::blocking::Client::new();
-    Ok(client
-        .post(format!("{}/{}", server, device_key))
-        .header(
-            "Content-Type",
-            if encrypted {
-                "application/x-www-form-urlencoded"
-            } else {
-                "application/json; charset=utf-8"
-            },
-        )
-        .body(if encrypted {
-            format!("ciphertext={}", urlencoding(&message))
+    let mut handle = Easy::new();
+    handle.useragent("curl/8.9.1")?;
+
+    handle.url(&format!("{}/{}", server, device_key))?;
+    handle.post(true)?;
+    {
+        let msg = if encrypted {
+            &format!("ciphertext={}", urlencoding(&message))
         } else {
-            message
-        })
-        .send()?
-        .json::<Resp>()?)
+            &message
+        };
+        handle.post_fields_copy(msg.as_bytes())?;
+    }
+
+    let mut content = String::new();
+    {
+        let mut transfer = handle.transfer();
+        transfer.write_function(|data| {
+            content.push_str(std::str::from_utf8(data).unwrap());
+            Ok(data.len())
+        })?;
+        transfer.perform()?;
+    }
+
+    Ok(json5::from_str(&content)?)
 }
 
 fn urlencoding(s: &str) -> String {

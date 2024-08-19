@@ -1,6 +1,6 @@
 # barsk
 
-version 1.0.0
+version 1.1.0
 
 A bark cli written by Rust.
 
@@ -112,10 +112,10 @@ Options:
 
 - [base64](https://github.com/marshallpierce/rust-base64)
 - [clap](https://github.com/clap-rs/clap)
-- [reqwest](https://github.com/seanmonstar/reqwest)
+- [curl](https://github.com/alexcrichton/curl-rust)
+- [json5](https://github.com/callum-oakley/json5-rs)
 - [rust-crypto](https://github.com/DaGenix/rust-crypto)
 - [serde](https://github.com/serde-rs/serde)
-- [serde_json](https://github.com/serde-rs/json)
 
 ## LICENSE
 

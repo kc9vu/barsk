@@ -184,7 +184,7 @@ impl Cli {
     }
 
     fn to_message(&self, conf: &Conf) -> Result<String> {
-        let message = serde_json::to_string(&self.to_msg(conf)?).unwrap();
+        let message = json5::to_string(&self.to_msg(conf)?)?;
 
         if self.encrypt || conf.encrypt.unwrap_or(false) {
             let (key, iv, method) = if self.check_encryption().is_ok() {
@@ -246,7 +246,8 @@ impl Conf {
     }
 
     fn from_filepath(path: &str) -> Result<Self> {
-        Ok(serde_json::from_reader(std::fs::File::open(path)?)?)
+        let content = std::fs::read_to_string(path)?;
+        Ok(json5::from_str(&content)?)
     }
 
     fn from_executable_file() -> Result<Option<Self>> {
