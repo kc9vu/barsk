@@ -167,11 +167,11 @@ impl Cli {
             copy: self.copy.as_deref(),
             auto_copy: if self.auto_copy { Some(()) } else { None },
             archive: if self.no_archive {
-                Some("0")
+                Some(false)
             } else if self.archive {
-                Some("1")
+                Some(true)
             } else {
-                conf.archive.map(|a| if a { "1" } else { "0" })
+                conf.archive
             },
             level: self.level.as_ref().or(conf.level.as_ref()),
             group: self.group.as_deref().or(conf.group.as_deref()),
@@ -295,10 +295,17 @@ struct Msg<'a> {
     #[serde(skip_serializing_if = "Option::is_none")]
     auto_copy: Option<()>,
 
-    #[serde(rename = "isArchive", skip_serializing_if = "Option::is_none")]
-    archive: Option<&'a str>,
+    #[serde(
+        rename = "isArchive",
+        skip_serializing_if = "Option::is_none",
+        serialize_with = "bark::de::serialize_archive"
+    )]
+    archive: Option<bool>,
 
-    #[serde(skip_serializing_if = "Option::is_none", serialize_with = "bark::de::serialize_level")]
+    #[serde(
+        skip_serializing_if = "Option::is_none",
+        serialize_with = "bark::de::serialize_level"
+    )]
     level: Option<&'a Level>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -310,7 +317,10 @@ struct Msg<'a> {
     #[serde(skip_serializing_if = "Option::is_none")]
     sound: Option<&'a str>,
 
-    #[serde(skip_serializing_if = "bark::de::is_false", serialize_with = "bark::de::serialize_call")]
+    #[serde(
+        skip_serializing_if = "bark::de::is_false",
+        serialize_with = "bark::de::serialize_call"
+    )]
     call: bool,
 
     // #[serde(skip_serializing_if = "Option::is_none")]
