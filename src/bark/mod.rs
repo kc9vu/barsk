@@ -5,7 +5,7 @@ pub(crate) mod de;
 pub(crate) mod msg;
 
 use anyhow::Result;
-use curl::easy::Easy;
+use curl::easy::{Easy, List};
 
 pub(crate) use commands::Level;
 
@@ -16,16 +16,22 @@ pub(crate) fn send_message(
     encrypted: bool,
 ) -> Result<Resp> {
     let mut handle = Easy::new();
-    handle.useragent("curl/8.9.1")?;
+    handle.useragent("curl/8.10.0")?;
 
     handle.url(&format!("{}/{}", server, device_key))?;
     handle.post(true)?;
     {
+        let mut list = List::new();
+
         let msg = if encrypted {
+            list.append("Content-Type: application/x-www-form-urlencoded")?;
             &format!("ciphertext={}", urlencoding(&message))
         } else {
+            list.append("Content-Type: application/json; charset=utf-8")?;
             &message
         };
+
+        handle.http_headers(list)?;
         handle.post_fields_copy(msg.as_bytes())?;
     }
 
