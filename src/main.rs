@@ -82,8 +82,8 @@ struct Cli {
     sound: Option<String>,
 
     /// Rings continuously for 30 seconds
-    #[arg(alias = "call", long, short = 'r')]
-    persistent_ringing: bool,
+    #[arg(alias = "persistent_ringing", long, short = 'r')]
+    call: bool,
 
     /// The icon url will be shown in the notification bar. Available above iOS 15
     #[arg(long)]
@@ -177,7 +177,7 @@ impl Cli {
             group: self.group.as_deref().or(conf.group.as_deref()),
             url: self.url.as_deref(),
             sound: self.sound.as_deref().or(conf.sound.as_deref()),
-            call: self.persistent_ringing,
+            call: self.call,
             badge: self.badge.as_deref(),
         })
     }
