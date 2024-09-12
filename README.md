@@ -51,8 +51,11 @@ Options:
       --sound <SOUND>
           The sound name or sound url will be played
 
+  -r, --call
+          Rings continuously for 30 seconds
+
       --icon <ICON>
-          The icon url will be shown in the notification bar
+          The icon url will be shown in the notification bar. Available above iOS 15
 
   -b, --badge <BADGE>
           The badge number will be shown in the app icon
