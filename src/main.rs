@@ -6,8 +6,6 @@ use bark::{
 use clap::{ArgAction, ArgGroup, Parser};
 use serde::{Deserialize, Serialize};
 
-use crate::bark::send_message;
-
 mod bark;
 
 #[derive(Parser, Debug)]
@@ -55,7 +53,7 @@ struct Cli {
     #[arg(
         long,
         short,
-        value_enum,
+        // value_enum,
         // hide_possible_values = true,
         ignore_case = true,
         long_help = "The push interruption level. Simple as --active, --time-sensitive (alias --instant), --passive"
@@ -82,6 +80,10 @@ struct Cli {
     /// The sound name or sound url will be played
     #[arg(long)]
     sound: Option<String>,
+
+    /// Continuous ringing for 30 seconds
+    #[arg(long)]
+    call: bool,
 
     /// The icon url will be shown in the notification bar
     #[arg(long)]
@@ -179,6 +181,7 @@ impl Cli {
             group: self.group.as_deref().or(conf.group.as_deref()),
             url: self.url.as_deref(),
             sound: self.sound.as_deref().or(conf.sound.as_deref()),
+            call: self.call,
             // icon: self.icon.as_deref().or(conf.icon.as_deref()),
             badge: self.badge.as_deref(),
         })
@@ -312,6 +315,9 @@ struct Msg<'a> {
     #[serde(skip_serializing_if = "Option::is_none")]
     sound: Option<&'a str>,
 
+    #[serde(skip_serializing_if = "bark::de::is_false", serialize_with = "bark::de::serialize_call")]
+    call: bool,
+
     // #[serde(skip_serializing_if = "Option::is_none")]
     // icon: Option<&'a str>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -366,7 +372,7 @@ fn run_command() -> Result<()> {
         };
 
         // Send the message, print response message
-        let res = send_message(
+        let res = bark::send_message(
             server,
             device_key,
             message,
@@ -384,6 +390,6 @@ fn run_command() -> Result<()> {
 
 fn main() {
     if let Err(error) = run_command() {
-        eprintln!("error: {error}");
+        eprintln!("error: {}", error);
     }
 }

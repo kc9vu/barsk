@@ -1,7 +1,7 @@
 use crate::Resp;
 
 mod commands;
-// pub(crate) mod de;
+pub(crate) mod de;
 pub(crate) mod msg;
 
 use anyhow::Result;
