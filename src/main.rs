@@ -12,17 +12,18 @@ mod bark;
 
 #[derive(Parser, Debug)]
 #[command(
-    name = "barsk",
-    author,
+    bin_name = "barsk",
+    author = "kc9vu",
     about = "Push to your iPhone with text, links and more!",
     version,
-    max_term_width = 80,
-    group(
-        ArgGroup::new("push level")
-            .args(["active", "time_sensitive", "passive"])
-            .conflicts_with("level")
-    ),
+    max_term_width = 80
 )]
+#[command(
+    group(
+    ArgGroup::new("push level")
+        .args(["active", "time_sensitive", "passive"])
+        .conflicts_with("level")
+))]
 struct Cli {
     /// Push content
     body: String,
@@ -178,7 +179,7 @@ impl Cli {
             group: self.group.as_deref().or(conf.group.as_deref()),
             url: self.url.as_deref(),
             sound: self.sound.as_deref().or(conf.sound.as_deref()),
-            icon: self.icon.as_deref().or(conf.icon.as_deref()),
+            // icon: self.icon.as_deref().or(conf.icon.as_deref()),
             badge: self.badge.as_deref(),
         })
     }
@@ -232,7 +233,7 @@ struct Conf {
     archive: Option<bool>,
     level: Option<Level>,
     group: Option<String>,
-    icon: Option<String>,
+    // icon: Option<String>,
     sound: Option<String>,
     encrypt: Option<bool>,
     method: Option<Method>,
@@ -311,9 +312,8 @@ struct Msg<'a> {
     #[serde(skip_serializing_if = "Option::is_none")]
     sound: Option<&'a str>,
 
-    #[serde(skip_serializing_if = "Option::is_none")]
-    icon: Option<&'a str>,
-
+    // #[serde(skip_serializing_if = "Option::is_none")]
+    // icon: Option<&'a str>,
     #[serde(skip_serializing_if = "Option::is_none")]
     badge: Option<&'a str>,
 }
