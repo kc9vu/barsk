@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{bail, Result};
 use bark::{
     msg::{is_valid_cipher, Method},
     Level,
@@ -81,11 +81,11 @@ struct Cli {
     #[arg(long)]
     sound: Option<String>,
 
-    /// Continuous ringing for 30 seconds
-    #[arg(long)]
-    call: bool,
+    /// Rings continuously for 30 seconds
+    #[arg(alias = "call", long, short = 'r')]
+    persistent_ringing: bool,
 
-    /// The icon url will be shown in the notification bar
+    /// The icon url will be shown in the notification bar. Available above iOS 15
     #[arg(long)]
     icon: Option<String>,
 
@@ -108,7 +108,7 @@ struct Cli {
     #[arg(
         long,
         short,
-        value_enum,
+        // value_enum,
         default_value = "aes128cbc",
         hide_possible_values = true,
         ignore_case = true,
@@ -173,16 +173,11 @@ impl Cli {
             } else {
                 conf.archive.map(|a| if a { "1" } else { "0" })
             },
-            level: self
-                .level
-                .as_ref()
-                .or(conf.level.as_ref())
-                .map(|l| l.into()),
+            level: self.level.as_ref().or(conf.level.as_ref()),
             group: self.group.as_deref().or(conf.group.as_deref()),
             url: self.url.as_deref(),
             sound: self.sound.as_deref().or(conf.sound.as_deref()),
-            call: self.call,
-            // icon: self.icon.as_deref().or(conf.icon.as_deref()),
+            call: self.persistent_ringing,
             badge: self.badge.as_deref(),
         })
     }
@@ -190,7 +185,7 @@ impl Cli {
     fn to_message(&self, conf: &Conf) -> Result<String> {
         let message = json5::to_string(&self.to_msg(conf)?)?;
 
-        if self.encrypt || conf.encrypt.unwrap_or(false) {
+        if !self.no_encrypt && (self.encrypt || conf.encrypt.unwrap_or(false)) {
             let (key, iv, method) = if self.check_encryption().is_ok() {
                 // Use encryption config from command line
                 (
@@ -206,7 +201,7 @@ impl Cli {
                     conf.method.unwrap(),
                 )
             } else {
-                return Err(anyhow::anyhow!("Failed to load encryption config"));
+                bail!("Failed to load encryption config");
             };
 
             bark::msg::encrypt(&message, key, iv, method)
@@ -217,7 +212,7 @@ impl Cli {
 
     fn check_encryption(&self) -> Result<()> {
         if self.aes_key.is_none() {
-            return Err(anyhow::anyhow!("Missing aes_key"));
+            bail!("Missing aes_key");
         }
         is_valid_cipher(
             self.method,
@@ -303,8 +298,8 @@ struct Msg<'a> {
     #[serde(rename = "isArchive", skip_serializing_if = "Option::is_none")]
     archive: Option<&'a str>,
 
-    #[serde(skip_serializing_if = "Option::is_none")]
-    level: Option<&'a str>,
+    #[serde(skip_serializing_if = "Option::is_none", serialize_with = "bark::de::serialize_level")]
+    level: Option<&'a Level>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     group: Option<&'a str>,
@@ -368,7 +363,7 @@ fn run_command() -> Result<()> {
     } else {
         let device_key = match cli.device_key.as_deref().or(conf.device_key.as_deref()) {
             Some(value) => value,
-            None => return Err(anyhow::anyhow!("No device_key detect, please specify one")),
+            None => bail!("No device_key detect, please specify one"),
         };
 
         // Send the message, print response message
@@ -376,7 +371,7 @@ fn run_command() -> Result<()> {
             server,
             device_key,
             message,
-            cli.encrypt || conf.encrypt.unwrap_or(false),
+            !cli.no_encrypt && (cli.encrypt || conf.encrypt.unwrap_or(false)),
         )?;
         if res.code == 0 {
             println!("{}", res.message);

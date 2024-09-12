@@ -33,8 +33,7 @@ where
     serializer.serialize_str("0")
 }
 
-#[allow(unused)]
-pub(crate) fn serialize_level<S>(value: &Option<Level>, serializer: S) -> Result<S::Ok, S::Error>
+pub(crate) fn serialize_level<S>(value: &Option<&Level>, serializer: S) -> Result<S::Ok, S::Error>
 where
     S: Serializer,
 {
