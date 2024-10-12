@@ -114,7 +114,7 @@ struct Cli {
         ignore_case = true,
         long_help = "Encryption method. Can be aes128cbc aes192cbc aes256cbc aes128ecb aes192ecb aes256ecb"
     )]
-    method: Method,
+    method: Option<Method>,
 
     /// The AES key for encryption
     #[arg(long)]
@@ -185,7 +185,7 @@ impl Cli {
     fn to_message(&self, conf: &Conf) -> Result<String> {
         let message = json5::to_string(&self.to_msg(conf)?)?;
 
-        if !self.no_encrypt && (self.encrypt || conf.encrypt.unwrap_or(false)) {
+        if !self.no_encrypt && (self.encrypt || conf.encrypt) {
             let (key, iv, method) = if self.check_encryption().is_ok() {
                 // Use encryption config from command line
                 (
@@ -198,13 +198,13 @@ impl Cli {
                 (
                     conf.aes_key.as_deref().unwrap(),
                     conf.aes_iv.as_deref(),
-                    conf.method.unwrap(),
+                    conf.method,
                 )
             } else {
                 bail!("Failed to load encryption config");
             };
 
-            bark::msg::encrypt(&message, key, iv, method)
+            bark::msg::encrypt(&message, key, iv, method.unwrap_or(Method::Aes128Cbc))
         } else {
             Ok(message)
         }
@@ -215,7 +215,7 @@ impl Cli {
             bail!("Missing aes_key");
         }
         is_valid_cipher(
-            self.method,
+            self.method.unwrap_or(Method::Aes128Cbc),
             self.aes_key.as_ref().unwrap(),
             self.aes_iv.as_deref(),
         )?;
@@ -224,18 +224,29 @@ impl Cli {
     }
 }
 
-#[derive(Deserialize, Default, Debug)]
+#[derive(Debug, Default, Deserialize)]
 struct Conf {
     server: Option<String>,
+
     device_key: Option<String>,
+
     archive: Option<bool>,
+
     level: Option<Level>,
+
     group: Option<String>,
+
     // icon: Option<String>,
+
     sound: Option<String>,
-    encrypt: Option<bool>,
+
+    #[serde(default)]
+    encrypt: bool,
+
     method: Option<Method>,
+
     aes_key: Option<String>,
+
     aes_iv: Option<String>,
 }
 
@@ -381,7 +392,7 @@ fn run_command() -> Result<()> {
             server,
             device_key,
             message,
-            !cli.no_encrypt && (cli.encrypt || conf.encrypt.unwrap_or(false)),
+            !cli.no_encrypt && (cli.encrypt || conf.encrypt),
         )?;
         if res.code == 0 {
             println!("{}", res.message);
