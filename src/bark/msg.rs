@@ -1,4 +1,3 @@
-use anyhow::Result;
 use base64::prelude::{Engine, BASE64_STANDARD};
 use clap::ValueEnum;
 use crypto::{
@@ -6,11 +5,63 @@ use crypto::{
     blockmodes::PkcsPadding,
     buffer::{ReadBuffer, WriteBuffer},
 };
-use serde::de::{Deserialize, Error, Visitor};
+use serde::{
+    de::{Deserialize, Error, Visitor},
+    Serialize,
+};
+
+use crate::command::Level;
 use Method::*;
 
-#[derive(ValueEnum, Clone, Copy, Debug)]
-pub(crate) enum Method {
+#[derive(Serialize, Debug)]
+pub struct Msg<'a> {
+    pub body: &'a str,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub title: Option<&'a str>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub copy: Option<&'a str>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub auto_copy: Option<()>,
+
+    #[serde(
+        rename = "isArchive",
+        skip_serializing_if = "Option::is_none",
+        serialize_with = "super::de::serialize_archive"
+    )]
+    pub archive: Option<bool>,
+
+    #[serde(
+        skip_serializing_if = "Option::is_none",
+        serialize_with = "super::de::serialize_level"
+    )]
+    pub level: Option<Level>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub group: Option<&'a str>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub url: Option<&'a str>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub sound: Option<&'a str>,
+
+    #[serde(
+        skip_serializing_if = "super::de::is_false",
+        serialize_with = "super::de::serialize_call"
+    )]
+    pub call: bool,
+
+    // #[serde(skip_serializing_if = "Option::is_none")]
+    // icon: Option<&'a str>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub badge: Option<&'a str>,
+}
+
+#[derive(Debug, Clone, Copy, ValueEnum)]
+pub enum Method {
     #[clap(alias = "aes128cbc", alias = "aes128_cbc", alias = "aes_128_cbc")]
     Aes128Cbc,
 
@@ -73,9 +124,9 @@ impl<'de> Deserialize<'de> for Method {
     }
 }
 
-pub(crate) fn is_valid_cipher(cipher: Method, key: &str, iv: Option<&str>) -> Result<()> {
+pub fn is_valid_cipher(method: Method, key: &str, iv: Option<&str>) -> Result<(), &'static str> {
     match (
-        cipher,
+        method,
         key.len(),
         match iv {
             Some(iv) => iv.len() == 16,
@@ -88,11 +139,18 @@ pub(crate) fn is_valid_cipher(cipher: Method, key: &str, iv: Option<&str>) -> Re
         (Aes128Ecb, 16, _) => Ok(()),
         (Aes192Ecb, 24, _) => Ok(()),
         (Aes256Ecb, 32, _) => Ok(()),
-        _ => Err(anyhow::anyhow!("Check aes_key and/or aes_iv")),
+        _ => Err("Check aes_key and/or aes_iv"),
     }
 }
 
-pub(crate) fn encrypt(plain: &str, key: &str, iv: Option<&str>, method: Method) -> Result<String> {
+/// Encrypt plain text using AES encryption with CBC or ECB mode.
+/// Only accepts plain length less than 4096.
+pub fn encrypt(
+    plain: &str,
+    key: &str,
+    iv: Option<&str>,
+    method: Method,
+) -> Result<String, crypto::symmetriccipher::SymmetricCipherError> {
     let key = key.as_bytes();
     let plain = plain.as_bytes();
     assert!(plain.len() < 4096);
@@ -124,12 +182,7 @@ pub(crate) fn encrypt(plain: &str, key: &str, iv: Option<&str>, method: Method) 
     let mut read_buffer = crypto::buffer::RefReadBuffer::new(plain);
     let mut write_buffer = crypto::buffer::RefWriteBuffer::new(&mut buffer);
 
-    if encryptor
-        .encrypt(&mut read_buffer, &mut write_buffer, true)
-        .is_err()
-    {
-        return Err(anyhow::anyhow!("Failed encrypt message"));
-    }
+    encryptor.encrypt(&mut read_buffer, &mut write_buffer, true)?;
     let mut binding = write_buffer.take_read_buffer();
     let cipher = binding.take_remaining();
     Ok(BASE64_STANDARD.encode(cipher))

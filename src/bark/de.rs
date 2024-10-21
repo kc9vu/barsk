@@ -1,13 +1,13 @@
-use crate::bark::Level;
+use crate::command::Level;
 use serde::Serializer;
 
 // Skip serialize if value is false
-pub(crate) fn is_false(value: &bool) -> bool {
+pub fn is_false(value: &bool) -> bool {
     // Negate
     !value
 }
 
-pub(crate) fn serialize_archive<S>(value: &Option<bool>, serializer: S) -> Result<S::Ok, S::Error>
+pub fn serialize_archive<S>(value: &Option<bool>, serializer: S) -> Result<S::Ok, S::Error>
 where
     S: Serializer,
 {
@@ -18,7 +18,7 @@ where
     }
 }
 
-pub(crate) fn serialize_level<S>(value: &Option<&Level>, serializer: S) -> Result<S::Ok, S::Error>
+pub fn serialize_level<S>(value: &Option<Level>, serializer: S) -> Result<S::Ok, S::Error>
 where
     S: Serializer,
 {
@@ -29,7 +29,7 @@ where
     }
 }
 
-pub(crate) fn serialize_call<S>(value: &bool, serializer: S) -> Result<S::Ok, S::Error>
+pub fn serialize_call<S>(value: &bool, serializer: S) -> Result<S::Ok, S::Error>
 where
     S: Serializer,
 {
