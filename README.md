@@ -1,7 +1,5 @@
 # barsk
 
-version 1.1.0
-
 A bark cli written by Rust.
 
 > Bark is a free, lightweight, push app for your iPhone with a simple interface call. [Official website](https://bark.day.app/#/)
@@ -34,6 +32,24 @@ Options:
   -C, --auto-copy
           Auto copy the content to clipboard. Available under iOS 14.5
 
+      --url <URL>
+          The URL will be opened when the notification is clicked
+
+  -r, --call
+          Rings continuously for 30 seconds
+
+      --icon <ICON>
+          The icon url will be shown in the notification bar. Available above iOS 15
+
+  -b, --badge <BADGE>
+          The badge number will be shown in the app icon
+
+  -s, --server <SERVER>
+          The server url for push message
+
+  -d, --device-key <DEVICE_KEY>
+          The device key for push message
+
   -a, --archive
           Archiving the message to history. use --no-archive/-A to disable
 
@@ -45,20 +61,8 @@ Options:
   -g, --group <GROUP>
           The group name in history messages
 
-      --url <URL>
-          The URL will be opened when the notification is clicked
-
       --sound <SOUND>
           The sound name or sound url will be played
-
-  -r, --call
-          Rings continuously for 30 seconds
-
-      --icon <ICON>
-          The icon url will be shown in the notification bar. Available above iOS 15
-
-  -b, --badge <BADGE>
-          The badge number will be shown in the app icon
 
   -e, --encrypt
           Push the encrypted message to server. Use --no-encrypt/-E to disable
@@ -73,12 +77,6 @@ Options:
 
       --aes-iv <AES_IV>
           The AES initialization vector for encryption
-
-  -s, --server <SERVER>
-          The server url for push message
-
-  -d, --device-key <DEVICE_KEY>
-          The device key for push message
 
   -F, --config <CONFIG_FILE>
           The config file path
