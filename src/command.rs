@@ -59,7 +59,7 @@ pub struct Cli {
 
     /// The config file path
     // Use ArgAction::Set can use multiple config_file, the last one will be used
-    #[arg(long = "config", short = 'F', action = ArgAction::Set)]
+    #[arg(env = "BARSK_CONFIG_PATH", long = "config", short = 'F', action = ArgAction::Set)]
     pub config_file: Option<PathBuf>,
 
     /// Don't use any config file, it means run without adding any unspecified arguments

@@ -3,19 +3,10 @@ mod command;
 
 use command::Conf;
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use anyhow::{anyhow, Result};
 use clap::Parser;
-
-fn get_executable_config_path() -> Option<PathBuf> {
-    let config_path = std::env::current_exe().ok()?.parent()?.join("bark.json");
-    if config_path.exists() && (config_path.is_file() || config_path.is_symlink()) {
-        Some(config_path)
-    } else {
-        None
-    }
-}
 
 fn read_config(path: &Path) -> Result<Conf> {
     Ok(json5::from_str(&fs::read_to_string(path)?)?)
@@ -27,7 +18,7 @@ fn get_command() -> Result<command::Cli> {
     if let Some(config_file) = cli
         .config_file
         .as_ref()
-        .or(get_executable_config_path().as_ref())
+        // .or(get_executable_config_path().as_ref())
     {
         let config = read_config(config_file)?;
         cli.conf = cli.conf.merge(config);
