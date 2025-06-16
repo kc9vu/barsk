@@ -1,95 +1,71 @@
 # barsk
 
-A bark cli written by Rust.
+A cli tool to push notifications to bark servers written by Rust.
 
 > Bark is a free, lightweight, push app for your iPhone with a simple interface call. [Official website](https://bark.day.app/#/)
-
-## Features
-
-- [x] Clear command line interface
-- [x] Config file support
-- [x] Encrypt message before push
-- [x] Encryption support: aes_256_cbc, aes_192_cbc, aes_128_cbc, aes_256_ecb, aes_192_ecb, aes_128_ecb
 
 ## Help
 
 ```plain
-Push to your iPhone with text, links and more!
+A cli tool to push notifications to bark servers
 
-Usage: barsk.exe [OPTIONS] <BODY>
-
-Arguments:
-  <BODY>
-          Push content
+Usage: barsk.exe [OPTIONS] --body <BODY>
 
 Options:
-  -t, --title <TITLE>
-          The title will be shown on the notification bar
-
-  -c, --copy <COPY>
-          The content will be copied to clipboard or <BODY>
-
-  -C, --auto-copy
-          Auto copy the content to clipboard. Available under iOS 14.5
-
-      --url <URL>
-          The URL will be opened when the notification is clicked
-
-  -r, --call
-          Rings continuously for 30 seconds
-
-      --icon <ICON>
-          The icon url will be shown in the notification bar. Available above iOS 15
-
-  -b, --badge <BADGE>
-          The badge number will be shown in the app icon
-
   -s, --server <SERVER>
-          The server url for push message
-
+          The server address of bark api service, default is https://api.day.app
   -d, --device-key <DEVICE_KEY>
-          The device key for push message
-
-  -a, --archive
-          Archiving the message to history. use --no-archive/-A to disable
-
+          Device key to receive push
+  -D, --device-keys <DEVICE_KEYS>
+          A list of device key to receive push
+  -t, --title <TITLE>
+          Push title
+  -T, --subtitle <SUBTITLE>
+          Push subtitle
+  -b, --body <BODY>
+          Push content
   -l, --level <LEVEL>
-          The push interruption level. Simple as --active, --time-sensitive (alias --instant), --passive
-
-          [possible values: active, time-sensitive, instant, passive]
-
+          Push interrupt level [possible values: critical, active, time-sensitive, passive]
+  -v, --volume <VOLUME>
+          Important warning notification volume
+  -B, --badge <BADGE>
+          Push angle marker, can be any number
+  -R, --call
+          Repeat notification ringtone
+  -C, --auto-copy
+          Automatically copy push content
+  -c, --copy <COPY>
+          Specify the copied content. If you do not pass this parameter, the entire push content will be copied
+  -u, --url <URL>
+          The URL that jumps when clicking push
+      --action
+          When "none" is transmitted, clicking push will not pop up
+  -S, --sound <SOUND>
+          Set different ringtones
+  -I, --icon <ICON>
+          Set custom icons
   -g, --group <GROUP>
-          The group name in history messages
-
-      --sound <SOUND>
-          The sound name or sound url will be played
-
+          Group messages
+  -a, --archive
+          Tell the app to archive
+  -A, --no-archive
+          Tell the app not to archive
   -e, --encrypt
-          Push the encrypted message to server. Use --no-encrypt/-E to disable
-
-  -m, --method <METHOD>
-          Encryption method. Can be aes128cbc aes192cbc aes256cbc aes128ecb aes192ecb aes256ecb
-
-          [default: aes128cbc]
-
-      --aes-key <AES_KEY>
-          The AES key for encryption
-
-      --aes-iv <AES_IV>
-          The AES initialization vector for encryption
-
+          Send encrypted push. Make sure not to use encryption, use --no-encryption, simple as -E
+  -m, --modes <MODES>
+          Encrypt modes [default: aes256cbc]
+      --aes-key <KEY>
+          For encryption [aliases: --aeskey]
+      --aes-iv <IV>
+          For encryption [aliases: --aesiv]
   -F, --config <CONFIG_FILE>
-          The config file path
-
+          Path to configuration file that contains some popular options [env: BARSK_CONFIG=]
   -z, --thats-all
-          Don't use any config file, it means run without adding any unspecified arguments
-
-  -p, --dry-run
-          Print message instead of sending it
-
+          Don't load configuration from file [aliases: --no-file]
+  -r, --dry-run
+          Just print push that will be sent, don't do sending
   -h, --help
-          Print help (see a summary with '-h')
-
+          Print help
   -V, --version
           Print version
 ```
@@ -99,24 +75,43 @@ Options:
 ```json
 {
     "server": "https://api.day.app",
-    "device_key": "<KEY>",
-    "encrypt": true,
-    "method": "aes256cbc",
-    "aes_key": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-    "aes_iv": "xxxxxxxxxxxxxxxx",
-    "group": "Test",
-    "sound": "birdsong"
+    "device_key": "token0",
+    "device_keys": ["token1", "token2"],
+
+    "encrypt": false,
+    "modes": "aes256cbc",
+    "aes_key": "0123456789abcdef0123456789abcdef",
+    "aes_iv": "0123456789abcdef",
+
+    "sound": "birdsong",
+    "icon": "https://bark.day.app/_media/Icon.png",
+    "group": "Normal",
+    "archive": null,  // true / false
 }
 ```
 
-## Crates Used
+```toml
+server = "https://api.day.app"
+device_key = "token0"
+device_keys = ["token1", "token2"]
 
-- [base64](https://github.com/marshallpierce/rust-base64)
+encrypt = false
+modes = "aes256cbc"
+aes_key = "0123456789abcdef0123456789abcdef"
+aes_iv = "0123456789abcdef"
+
+sound = "birdsong"
+icon = "https://bark.day.app/_media/Icon.png"
+group = "Normal"
+archive = None # true / false
+
+```
+## Core crates used
+
+- [aes](https://github.com/RustCrypto/block-ciphers)
+- [cbc](https://github.com/RustCrypto/block-modes)
 - [clap](https://github.com/clap-rs/clap)
-- [curl](https://github.com/alexcrichton/curl-rust)
-- [json5](https://github.com/callum-oakley/json5-rs)
-- [rust-crypto](https://github.com/DaGenix/rust-crypto)
-- [serde](https://github.com/serde-rs/serde)
+- [reqwest](https://github.com/seanmonstar/reqwest)
 
 ## LICENSE
 
