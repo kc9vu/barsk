@@ -72,7 +72,9 @@ Options:
 
 ## Config file
 
-```json
+Support json and toml.
+
+```json5
 {
     "server": "https://api.day.app",
     "device_key": "token0",
@@ -103,8 +105,7 @@ aes_iv = "0123456789abcdef"
 sound = "birdsong"
 icon = "https://bark.day.app/_media/Icon.png"
 group = "Normal"
-archive = None # true / false
-
+# archive = true / false
 ```
 ## Core crates used
 
