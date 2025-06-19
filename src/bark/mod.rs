@@ -25,14 +25,25 @@ pub struct Service {
     server: Option<String>,
 
     /// Device key to receive push
-    #[arg(long, short = 'd')]
+    #[arg(skip)]
     #[serde(default)]
     device_key: Option<String>,
 
     /// A list of device key to receive push
-    #[arg(long, short = 'D', action = ArgAction::Append)]
+    #[arg(
+        long = "device-key",
+        visible_alias = "device",
+        short = 'd',
+        value_name = "DEVICE_KEY...",
+        action = ArgAction::Append
+    )]
     #[serde(default, skip_serializing_if = "Option::is_none")]
     device_keys: Vec<String>,
+
+    /// Use configured device keys, default not
+    #[arg(long, short = 'k')]
+    #[serde(skip)]
+    use_file_key: bool,
 }
 
 impl Service {
@@ -41,12 +52,15 @@ impl Service {
             self.server = other.server;
         }
 
-        if self.device_key.is_none() {
-            self.device_key = other.device_key;
+        if self.use_file_key || self.device_keys.is_empty() {
+            if self.device_key.is_none() {
+                self.device_key = other.device_key;
+            }
+
+            self.device_keys.extend(other.device_keys);
+            self.device_keys.dedup();
         }
 
-        self.device_keys.extend(other.device_keys);
-        self.device_keys.dedup();
         if let Some(key) = self.device_key.as_ref() {
             if self.device_keys.contains(key) {
                 self.device_key = None;

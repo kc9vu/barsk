@@ -8,8 +8,7 @@ use anyhow::Result;
 use clap::Parser;
 use owo_colors::OwoColorize;
 use reqwest::{
-    Client,
-    StatusCode,
+    Client, StatusCode,
     header::{self, HeaderMap, HeaderValue},
 };
 use serde::Deserialize;
@@ -20,11 +19,11 @@ use crate::command::Cli;
 
 static API_SERVER: &str = "https://api.day.app";
 
-#[allow(unused)]
 #[derive(Deserialize, Debug)]
 struct Resp {
     code: u16,
     message: String,
+    #[allow(unused)]
     timestamp: u64,
 }
 
